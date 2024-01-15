@@ -72,8 +72,10 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* USER CODE BEGIN PV */
 uint8_t rxbuffer;
 uint8_t txtest=8;
+uint8_t flag_isTag=0;
 //volatile uint8_t  command[6] = {33,6,161,0,0,99}; //0x33,0x06,0xA1,0x00,0x00,0x99
 volatile uint8_t  command[6] = {0x33,0x06,0xA1,0x00,0x00,0x99}; //
+volatile uint8_t  command1[4] = {0x33,0x04,0xB1,0x99}; //Start scan mode.
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,6 +140,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
    HAL_TIM_Base_Start_IT(&htim1);
 	HAL_UART_Receive_IT(&huart4, &rxbuffer, 14);
+	HAL_UART_Transmit_IT(&huart4, (uint8_t*) command1, 4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -147,8 +150,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 //		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
-		HAL_UART_Transmit(&huart4, "hello\r\n",sizeof("hello\r\n"),10);
-		HAL_Delay(1000);
+//		HAL_UART_Transmit(&huart4, "hello\r\n",sizeof("hello\r\n"),10);
+//		HAL_Delay(1000);
+		if(flag_isTag==1){
+			flag_isTag=0;
+			printf("Find TAG!\r\n");
+		}
 	}
   /* USER CODE END 3 */
 }
@@ -469,14 +476,15 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == UART4) { //From RFID Reader
-		HAL_UART_Transmit_IT(&huart3, &rxbuffer, PROTOCOL_LENGTH);
+		flag_isTag=1;
+//		HAL_UART_Transmit_IT(&huart3, &rxbuffer, PROTOCOL_LENGTH);
 		HAL_UART_Receive_IT(&huart4, &rxbuffer, PROTOCOL_LENGTH);
 	}
 
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
-		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
+//		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
 	}
 }
 /* USER CODE END 4 */
