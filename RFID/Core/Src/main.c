@@ -71,7 +71,8 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 uint8_t rxbuffer;
-volatile uint8_t  command[1][6] = {{0x33,0x06,0xA1,0x00,0x00,0x99}};
+//volatile uint8_t  command[6] = {33,6,161,0,0,99}; //0x33,0x06,0xA1,0x00,0x00,0x99
+volatile uint8_t  command[6] = {0x33,0x06,0xA1,0x00,0x00,0x99}; //
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -471,7 +472,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
-//		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
+		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
 	}
 }
 /* USER CODE END 4 */
