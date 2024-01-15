@@ -71,6 +71,7 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 uint8_t rxbuffer;
+uint8_t txtest=8;
 //volatile uint8_t  command[6] = {33,6,161,0,0,99}; //0x33,0x06,0xA1,0x00,0x00,0x99
 volatile uint8_t  command[6] = {0x33,0x06,0xA1,0x00,0x00,0x99}; //
 /* USER CODE END PV */
@@ -145,6 +146,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
+		HAL_UART_Transmit(&huart4, "hello\r\n",sizeof("hello\r\n"),10);
+		HAL_Delay(1000);
 	}
   /* USER CODE END 3 */
 }
