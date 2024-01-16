@@ -88,9 +88,7 @@ uint8_t flag_isTag0 = 0; //reader0 tag exist
 uint8_t flag_isTag1 = 0; //reader1 tag exist
 uint8_t flag_isTag2 = 0; //reader2 tag exist
 
-uint16_t reader0_cnt = 0; //reader0 reading count
-uint16_t reader1_cnt = 0; //reader1 reading count
-uint16_t reader2_cnt = 0; //reader2 reading count
+uint16_t reader_cnt[3] = {0,}; //reader0 reading count
 
 uint8_t flag_check = 0;
 
@@ -185,12 +183,12 @@ int main(void)
 
 		if (flag_isTag0 == 1 || flag_isTag1 == 1 || flag_isTag2 == 1) {
 
-//			printf("READER%d TAG FINDED! \r\nUID : ", select_rfid);
-//			for (int number = 4; number < 12; number++) {
-//				printf("%02X ", rfid_tag_data[select_rfid][number]);
-//			}
-//			printf("\r\n");
-			printf("리더0 : %d 리더1 : %d 리더2 : %d\r\n", reader0_cnt, reader1_cnt, reader2_cnt);
+			printf("reader%d TAG FINDED! Total : %d\r\nUID : ", select_rfid,reader_cnt[select_rfid]);
+			for (int number = 4; number < 12; number++) {
+				printf("%02X ", rfid_tag_data[select_rfid][number]);
+			}
+			printf("\r\n");
+//			printf("리더0 : %d 리더1 : %d 리더2 : %d\r\n", reader0_cnt, reader1_cnt, reader2_cnt);
 			flag_isTag0 = 0;
 			flag_isTag1 = 0;
 			flag_isTag2 = 0;
@@ -599,7 +597,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			rxcnt = 0;
 			memcpy(rfid_tag_data[READER0], rxbuf, PROTOCOL_LENGTH);
 			flag_isTag0 = 1;
-			reader0_cnt++;
+			reader_cnt[READER0]++;
 			select_rfid = READER0;
 		} else {
 			rxcnt = 0;
@@ -620,7 +618,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			rxcnt = 0;
 			memcpy(rfid_tag_data[READER1], rxbuf, PROTOCOL_LENGTH);
 			flag_isTag1 = 1;
-			reader1_cnt++;
+			reader_cnt[READER1]++;
 			select_rfid = READER1;
 		} else {
 			rxcnt = 0;
@@ -641,7 +639,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			rxcnt = 0;
 			memcpy(rfid_tag_data[READER2], rxbuf, PROTOCOL_LENGTH);
 			flag_isTag2 = 1;
-			reader2_cnt++;
+			reader_cnt[READER2]++;
 			select_rfid = READER2;
 		} else {
 			rxcnt = 0;
