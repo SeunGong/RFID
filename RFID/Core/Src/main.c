@@ -38,6 +38,11 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 #define PROTOCOL_LENGTH (14)-2
+#define READER_NUMBER 3
+
+typedef enum {
+	READER0, READER1, READER2
+} _RFID;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -66,20 +71,31 @@ TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-uint8_t rfid_tag_data[PROTOCOL_LENGTH] = { 0, };
-uint8_t uart4_buffer;
-uint8_t txtest = 8;
+uint8_t rfid_tag_data[READER_NUMBER][PROTOCOL_LENGTH] = { 0, };
+uint8_t select_rfid = 0;
 
-uint8_t flag_isTag4 = 0;
+uint8_t uart2_buffer; //READER0
+uint8_t uart4_buffer; //READER1
+uint8_t uart5_buffer; //READER2
+
+uint8_t flag_isTag0 = 0; //reader0 tag exist
+uint8_t flag_isTag1 = 0; //reader1 tag exist
+uint8_t flag_isTag2 = 0; //reader2 tag exist
+
+uint16_t reader0_cnt = 0; //reader0 reading count
+uint16_t reader1_cnt = 0; //reader1 reading count
+uint16_t reader2_cnt = 0; //reader2 reading count
+
 uint8_t flag_check = 0;
 
 volatile uint8_t command[6] = { 0x33, 0x06, 0xA1, 0x00, 0x00, 0x99 }; //
-volatile uint8_t command1[4] = { 0x33, 0x04, 0xB1, 0x99 }; //Start scan mode.
+volatile uint8_t start_scan_cmd[4] = { 0x33, 0x04, 0xB1, 0x99 }; //Start scan mode.
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,6 +107,7 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_UART4_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_UART5_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -116,7 +133,6 @@ PUTCHAR_PROTOTYPE {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -143,12 +159,18 @@ int main(void)
   MX_UART4_Init();
   MX_TIM1_Init();
   MX_UART5_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_Base_Start_IT(&htim1);
-	HAL_UART_Receive_IT(&huart4, &uart4_buffer, 1);
-	HAL_Delay(1000); //
-	HAL_UART_Transmit_IT(&huart4, (uint8_t*) command1, 4);
-	printf("start\r\n");
+	HAL_TIM_Base_Start_IT(&htim1); //RFID TAG check timer start.
+
+	HAL_UART_Receive_IT(&huart2, &uart4_buffer, 1); //READER0 start UART
+	HAL_UART_Receive_IT(&huart4, &uart4_buffer, 1); //READER1 start UART
+	HAL_UART_Receive_IT(&huart5, &uart5_buffer, 1); //READER2 start UART
+
+	HAL_Delay(1000); //Give Init time for reset of RFID Reader.
+
+	//	HAL_UART_Transmit_IT(&huart4, (uint8_t*) start_scan_cmd, 4);
+	printf("-----RFID system start-----\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -157,16 +179,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		if (flag_check == 1 && flag_isTag4 == 1) {
-//		if (flag_isTag4 == 1) {
-			printf("UID : ");
-			for (int number = 4; number < 12; number++) {
-				printf("%02X ", rfid_tag_data[number]);
-			}
-			printf("\r\n");
+		/*		if(flag_check==1){
+		 flag_check=0;
+		 }*/
 
-			flag_check = 0;
-			flag_isTag4 = 0;
+		if (flag_isTag0 == 1 || flag_isTag1 == 1 || flag_isTag2 == 1) {
+
+//			printf("READER%d TAG FINDED! \r\nUID : ", select_rfid);
+//			for (int number = 4; number < 12; number++) {
+//				printf("%02X ", rfid_tag_data[select_rfid][number]);
+//			}
+//			printf("\r\n");
+			printf("리더0 : %d 리더1 : %d 리더2 : %d\r\n", reader0_cnt, reader1_cnt, reader2_cnt);
+			flag_isTag0 = 0;
+			flag_isTag1 = 0;
+			flag_isTag2 = 0;
 		}
 
 	}
@@ -300,7 +327,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 9600-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 10000-1;
+  htim1.Init.Period = 1000-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -393,6 +420,41 @@ static void MX_UART5_Init(void)
   /* USER CODE BEGIN UART5_Init 2 */
 
   /* USER CODE END UART5_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -523,12 +585,29 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	/*			if (huart->Instance == UART4) { //From RFID Reader
-	 flag_isTag4 = 1;
-	 //		HAL_UART_Transmit_IT(&huart3, &rxbuffer, PROTOCOL_LENGTH);
-	 HAL_UART_Receive_IT(&huart4, &uart4_buffer, PROTOCOL_LENGTH);
-	 }*/
-	if (huart->Instance == huart4.Instance) { // ST Link
+	/*READER 0*/
+	if (huart->Instance == huart2.Instance) {
+		volatile static uint8_t rxcnt = 0;
+		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
+
+		if (0x33 == uart2_buffer && rxcnt == 0)
+			rxcnt = 1;
+		else if (rxcnt > 0 && rxcnt < (PROTOCOL_LENGTH + 1)) {
+			rxbuf[rxcnt - 1] = uart2_buffer;
+			rxcnt++;
+		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart2_buffer == 0x99) {
+			rxcnt = 0;
+			memcpy(rfid_tag_data[READER0], rxbuf, PROTOCOL_LENGTH);
+			flag_isTag0 = 1;
+			reader0_cnt++;
+			select_rfid = READER0;
+		} else {
+			rxcnt = 0;
+		}
+		HAL_UART_Receive_IT(&huart2, &uart2_buffer, 1);
+	}
+	/*READER 1*/
+	if (huart->Instance == huart4.Instance) { //READER 1
 		volatile static uint8_t rxcnt = 0;
 		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
 
@@ -539,18 +618,43 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			rxcnt++;
 		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart4_buffer == 0x99) {
 			rxcnt = 0;
-			memcpy(rfid_tag_data, rxbuf, PROTOCOL_LENGTH);
-			flag_isTag4 = 1;
+			memcpy(rfid_tag_data[READER1], rxbuf, PROTOCOL_LENGTH);
+			flag_isTag1 = 1;
+			reader1_cnt++;
+			select_rfid = READER1;
 		} else {
 			rxcnt = 0;
 		}
 		HAL_UART_Receive_IT(&huart4, &uart4_buffer, 1);
 	}
+	/*READER 2*/
+	if (huart->Instance == huart5.Instance) { //READER 2
+		volatile static uint8_t rxcnt = 0;
+		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
+
+		if (0x33 == uart5_buffer && rxcnt == 0)
+			rxcnt = 1;
+		else if (rxcnt > 0 && rxcnt < (PROTOCOL_LENGTH + 1)) {
+			rxbuf[rxcnt - 1] = uart5_buffer;
+			rxcnt++;
+		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart5_buffer == 0x99) {
+			rxcnt = 0;
+			memcpy(rfid_tag_data[READER2], rxbuf, PROTOCOL_LENGTH);
+			flag_isTag2 = 1;
+			reader2_cnt++;
+			select_rfid = READER2;
+		} else {
+			rxcnt = 0;
+		}
+		HAL_UART_Receive_IT(&huart5, &uart5_buffer, 1);
+	}
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
-		flag_check = 1;
-//		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
+//		flag_check=1;
+		HAL_UART_Transmit_IT(&huart2, (uint8_t*) command, 6);
+		HAL_UART_Transmit_IT(&huart4, (uint8_t*) command, 6);
+		HAL_UART_Transmit_IT(&huart5, (uint8_t*) command, 6);
 	}
 }
 /* USER CODE END 4 */
