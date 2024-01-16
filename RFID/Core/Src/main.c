@@ -37,8 +37,11 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define PROTOCOL_LENGTH (14)-2
-#define READER_NUMBER 3
+#define UID_SIZE 8
+#define BLOCK_SIZE 4
+#define START_DGIT 12 //need data
+#define DATA_LENGTH (UID_SIZE+2*BLOCK_SIZE)+4
+#define READER_COUNT 3
 
 typedef enum {
 	READER0, READER1, READER2
@@ -77,7 +80,7 @@ UART_HandleTypeDef huart3;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-uint8_t rfid_tag_data[READER_NUMBER][PROTOCOL_LENGTH] = { 0, };
+uint8_t rfid_tag_data[READER_COUNT][DATA_LENGTH] = { 0, };
 uint8_t select_rfid = 0;
 
 uint8_t uart2_buffer; //READER0
@@ -92,7 +95,7 @@ uint16_t reader_cnt[3] = {0,}; //reader0 reading count
 
 uint8_t flag_check = 0;
 
-volatile uint8_t command[6] = { 0x33, 0x06, 0xA1, 0x00, 0x00, 0x99 }; //
+volatile uint8_t command[6] = { 0x33, 0x06, 0xA1, 0x00, 0x02, 0x99 }; //2 Block data read
 volatile uint8_t start_scan_cmd[4] = { 0x33, 0x04, 0xB1, 0x99 }; //Start scan mode.
 /* USER CODE END PV */
 
@@ -183,12 +186,17 @@ int main(void)
 
 		if (flag_isTag0 == 1 || flag_isTag1 == 1 || flag_isTag2 == 1) {
 
-			printf("reader%d TAG FINDED! Total : %d\r\nUID : ", select_rfid,reader_cnt[select_rfid]);
-			for (int number = 4; number < 12; number++) {
+/*			printf("Reader%d Total count : %d\r\nUID : ", select_rfid,reader_cnt[select_rfid]);
+			for (int number = 12; number < 20; number++) {
 				printf("%02X ", rfid_tag_data[select_rfid][number]);
 			}
-			printf("\r\n");
-//			printf("리더0 : %d 리더1 : %d 리더2 : %d\r\n", reader0_cnt, reader1_cnt, reader2_cnt);
+			printf("\r\n");*/
+			printf("Reader%d Total count : %d\r\nUID : ", select_rfid,reader_cnt[select_rfid]);
+			for (int number = START_DGIT; number < START_DGIT+BLOCK_SIZE; number++) {
+				printf("%02X",rfid_tag_data[select_rfid][number]);
+			}
+			printf(" %s\r\n",&rfid_tag_data[select_rfid][START_DGIT+BLOCK_SIZE]);
+//			printf("R0 : %d R1 : %d R2 : %d\r\n", reader_cnt[0], reader_cnt[1], reader_cnt[2]);
 			flag_isTag0 = 0;
 			flag_isTag1 = 0;
 			flag_isTag2 = 0;
@@ -586,16 +594,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	/*READER 0*/
 	if (huart->Instance == huart2.Instance) {
 		volatile static uint8_t rxcnt = 0;
-		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
+		static char rxbuf[DATA_LENGTH]; // cmd :  3, parm :  4
 
 		if (0x33 == uart2_buffer && rxcnt == 0)
 			rxcnt = 1;
-		else if (rxcnt > 0 && rxcnt < (PROTOCOL_LENGTH + 1)) {
+		else if (rxcnt > 0 && rxcnt < (DATA_LENGTH + 1)) {
 			rxbuf[rxcnt - 1] = uart2_buffer;
 			rxcnt++;
-		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart2_buffer == 0x99) {
+		} else if (rxcnt == (DATA_LENGTH + 1) && uart2_buffer == 0x99) {
 			rxcnt = 0;
-			memcpy(rfid_tag_data[READER0], rxbuf, PROTOCOL_LENGTH);
+			memcpy(rfid_tag_data[READER0], rxbuf, DATA_LENGTH);
 			flag_isTag0 = 1;
 			reader_cnt[READER0]++;
 			select_rfid = READER0;
@@ -607,16 +615,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	/*READER 1*/
 	if (huart->Instance == huart4.Instance) { //READER 1
 		volatile static uint8_t rxcnt = 0;
-		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
+		static char rxbuf[DATA_LENGTH]; // cmd :  3, parm :  4
 
 		if (0x33 == uart4_buffer && rxcnt == 0)
 			rxcnt = 1;
-		else if (rxcnt > 0 && rxcnt < (PROTOCOL_LENGTH + 1)) {
+		else if (rxcnt > 0 && rxcnt < (DATA_LENGTH + 1)) {
 			rxbuf[rxcnt - 1] = uart4_buffer;
 			rxcnt++;
-		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart4_buffer == 0x99) {
+		} else if (rxcnt == (DATA_LENGTH + 1) && uart4_buffer == 0x99) {
 			rxcnt = 0;
-			memcpy(rfid_tag_data[READER1], rxbuf, PROTOCOL_LENGTH);
+			memcpy(rfid_tag_data[READER1], rxbuf, DATA_LENGTH);
 			flag_isTag1 = 1;
 			reader_cnt[READER1]++;
 			select_rfid = READER1;
@@ -628,16 +636,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	/*READER 2*/
 	if (huart->Instance == huart5.Instance) { //READER 2
 		volatile static uint8_t rxcnt = 0;
-		static char rxbuf[PROTOCOL_LENGTH]; // cmd :  3, parm :  4
+		static char rxbuf[DATA_LENGTH]; // cmd :  3, parm :  4
 
 		if (0x33 == uart5_buffer && rxcnt == 0)
 			rxcnt = 1;
-		else if (rxcnt > 0 && rxcnt < (PROTOCOL_LENGTH + 1)) {
+		else if (rxcnt > 0 && rxcnt < (DATA_LENGTH + 1)) {
 			rxbuf[rxcnt - 1] = uart5_buffer;
 			rxcnt++;
-		} else if (rxcnt == (PROTOCOL_LENGTH + 1) && uart5_buffer == 0x99) {
+		} else if (rxcnt == (DATA_LENGTH + 1) && uart5_buffer == 0x99) {
 			rxcnt = 0;
-			memcpy(rfid_tag_data[READER2], rxbuf, PROTOCOL_LENGTH);
+			memcpy(rfid_tag_data[READER2], rxbuf, DATA_LENGTH);
 			flag_isTag2 = 1;
 			reader_cnt[READER2]++;
 			select_rfid = READER2;
