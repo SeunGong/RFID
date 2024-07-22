@@ -15,4 +15,11 @@ TAG (5종류)
 **수행 방법**
 - ST사 ST25RU3993-HPEV를 처음 사용하였으나 빈 냉장고 환경에서 완벽하게 모든 태그를 인식하지 못함
 - FSR-H0R 리더기를 사용하여 STMF767ZI보드와 UART통신을 통해 개별로 인식되는 태그를 인식
-- 인식되는 TAG의 COUNT와 특정 TAG를 구분해냄
+  ![Alt text](Configuration.png)
+- 리더기 제조사 프로그램을 사용하여 인식되는 TAG의 COUNT와 특정 TAG를 구분해냄
+  ![Alt text](TAG.png "Optional title")
+
+<!--<img src="Configuration.png" width="450px" height="300px" title="구성도" alt="config"></img><br/>-->
+<!--<img src="TAG.png" width="450px" height="300px" title="태그 분석" alt="tag"></img><br/>-->
+
+
