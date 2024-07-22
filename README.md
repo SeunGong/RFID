@@ -12,6 +12,7 @@ FSR-H0R-40
 STMF767ZI 보드
 TAG (5종류)
 ```
+![Alt text](TAG_list.png)
 **수행 방법**
 - ST사 ST25RU3993-HPEV를 처음 사용하였으나 빈 냉장고 환경에서 완벽하게 모든 태그를 인식하지 못함
 - FSR-H0R 리더기를 사용하여 STMF767ZI보드와 UART통신을 통해 개별로 인식되는 태그를 인식
